@@ -13,11 +13,28 @@ from Quartz import (
     kCGEventFlagMaskCommand,
 )
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL = "llama3.2:3b"
-PROMPT_TEMPLATE = """Correct the following text for grammar, spelling, and punctuation. Return ONLY the corrected text, with no explanations, no preamble, and no additional comments.
+import re
 
-Text: {text}"""
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL = "llama3.2:1b"
+PROMPT_TEMPLATE = """Fix grammar/spelling. Output ONLY the corrected sentence, nothing else.
+
+Input: {text}
+Output:"""
+
+def extract_corrected_text(response, original):
+    text = response.strip()
+    if not text:
+        return original
+    lines = text.split('\n')
+    result = lines[0].strip()
+    for prefix in ['Output:', 'Corrected:', 'Corrected text:', 'Result:']:
+        if result.lower().startswith(prefix.lower()):
+            result = result[len(prefix):].strip()
+    result = result.strip('"\'')
+    if len(result) < 2 or len(result) > len(original) * 3:
+        return original
+    return result
 
 class GrammarApp(rumps.App):
     def __init__(self):
@@ -116,7 +133,8 @@ class GrammarApp(rumps.App):
             json={"model": MODEL, "prompt": prompt, "stream": False},
             timeout=30,
         )
-        return response.json().get("response", "").strip()
+        raw = response.json().get("response", "")
+        return extract_corrected_text(raw, text)
 
     def fix_grammar(self):
         try:
