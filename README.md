@@ -1,88 +1,148 @@
-# AI Grammar Keyboard
+# Grammar Fix ✨
 
 Fix grammar with a keyboard shortcut using a local LLM. Works offline, private, and fast.
 
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 ## Features
 
-- **Local LLM**: Uses Ollama with llama3.2:3b (no data sent to cloud)
-- **Works everywhere**: Menu bar app with global hotkey (Ctrl+Option+G)
-- **Fast**: ~2 second response time
-- **Simple**: Select text → press shortcut → grammar fixed
+- 🔒 **Private**: Uses Ollama locally - no data sent to the cloud
+- ⚡ **Fast**: ~2 second response time
+- 🌍 **Works everywhere**: System tray app with global hotkey
+- 💻 **Cross-platform**: macOS and Linux
 
-## Requirements
+## Quick Install
 
-- macOS 13+
-- [Ollama](https://ollama.ai) installed
-- Python 3.9+
-- ~2GB disk space for the model
+### Prerequisites
 
-## Installation
+1. Install [Ollama](https://ollama.ai):
+   ```bash
+   # macOS
+   brew install ollama
+   
+   # Linux
+   curl -fsSL https://ollama.ai/install.sh | sh
+   ```
+
+2. Start Ollama and pull the model:
+   ```bash
+   ollama serve &
+   ollama pull llama3.2:1b
+   ```
+
+### macOS
+
+**Option A: Download DMG** (Recommended)
+
+1. Download `GrammarFix-1.0.0-macos.dmg` from [Releases](https://github.com/carlos-rodrigo/ai-grammar-keyboard/releases)
+2. Open the DMG
+3. Drag "Grammar Fix" to Applications
+4. Open "Grammar Fix" from Applications
+5. Grant Accessibility permission when prompted
+
+**Option B: From source**
 
 ```bash
-# Install Ollama first
-brew install ollama
-
-# Clone and install
 git clone https://github.com/carlos-rodrigo/ai-grammar-keyboard.git
 cd ai-grammar-keyboard
-./install.sh
+pip3 install -e ".[macos]"
+grammar-fix
 ```
 
-## Option 1: Menu Bar App (Recommended)
+### Linux
 
-Works **everywhere** including Terminal, Arc, Chrome, VS Code.
+**Option A: One-line install**
 
 ```bash
-# Install Python dependencies
-pip3 install -r requirements.txt
-
-# Run the app
-python3 grammar_app.py
+curl -fsSL https://raw.githubusercontent.com/carlos-rodrigo/ai-grammar-keyboard/main/scripts/install-linux.sh | bash
 ```
 
-Look for **"G"** in your menu bar. Press **Ctrl+Option+G** to fix selected text.
-
-**Note:** macOS will ask for Accessibility permissions on first use.
-
-## Option 2: Automator Service
-
-Works in native macOS apps (TextEdit, Notes, Mail).
+**Option B: From source**
 
 ```bash
-./install.sh
-```
+# Install system dependencies (Debian/Ubuntu)
+sudo apt install xclip python3-gi
 
-Then set up keyboard shortcut in **System Settings → Keyboard → Keyboard Shortcuts → Services → Text → Fix Grammar**
+git clone https://github.com/carlos-rodrigo/ai-grammar-keyboard.git
+cd ai-grammar-keyboard
+pip3 install -e ".[linux]"
+grammar-fix
+```
 
 ## Usage
 
-1. Select text in any app
-2. Press **Ctrl+Option+G**
-3. Wait ~2 seconds
-4. Text is replaced with corrected version
+1. **Start the app** - Look for "G" in your menu bar / system tray
+2. **Select text** in any application
+3. **Press the hotkey**:
+   - macOS: `Ctrl+Option+G`
+   - Linux: `Ctrl+Alt+G`
+4. **Wait ~2 seconds** - text is replaced with corrected version
 
-## How It Works
+## Building from Source
 
+### macOS
+
+```bash
+./scripts/build-macos.sh
+# Output: dist/Grammar Fix.app, dist/GrammarFix-1.0.0-macos.dmg
 ```
-Select text → Ctrl+Option+G → Copy to clipboard → Ollama API → Paste corrected text
+
+### Linux
+
+```bash
+./scripts/build-linux.sh
+# Output: dist/grammar-fix
 ```
 
 ## Troubleshooting
 
-**Menu bar app needs permissions?**
-- System Settings → Privacy & Security → Accessibility
-- Add Terminal or Python
+### "Ollama not running"
 
-**Ollama not running?**
 ```bash
 ollama serve
 ```
 
-**Test the script directly:**
+### macOS: "Accessibility permission required"
+
+System Settings → Privacy & Security → Accessibility → Enable "Grammar Fix"
+
+### Linux: Hotkey not working
+
+Make sure `xclip` is installed:
 ```bash
-echo "She no go store" | ~/.local/bin/grammar-fix.sh
+sudo apt install xclip  # Debian/Ubuntu
+sudo pacman -S xclip    # Arch
 ```
+
+### Test Ollama directly
+
+```bash
+curl http://localhost:11434/api/generate -d '{
+  "model": "llama3.2:1b",
+  "prompt": "Fix: She no go store",
+  "stream": false
+}'
+```
+
+## Configuration
+
+The app uses sensible defaults. To customize, edit:
+
+- Model: Change `DEFAULT_MODEL` in `src/grammar_fix/core.py`
+- Prompt: Modify `PROMPT_TEMPLATE` in `src/grammar_fix/core.py`
+- Hotkey: 
+  - macOS: Change `HOTKEY_KEYCODE` in `app_macos.py`
+  - Linux: Modify the hotkey string in `app_linux.py`
+
+## How It Works
+
+```
+Select text → Hotkey → Copy to clipboard → Ollama API → Paste corrected text
+```
+
+The app simulates Cmd/Ctrl+C, sends the text to your local Ollama instance, and simulates Cmd/Ctrl+V to paste the result.
 
 ## License
 
-MIT
+MIT © Carlos Rodrigo
