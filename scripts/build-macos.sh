@@ -32,58 +32,66 @@ pip3 install -e ".[macos]" --quiet
 # Generate icon if needed
 echo "🎨 Generating app icon..."
 if [[ ! -f assets/icon.icns ]]; then
-    if [[ -f assets/icon.svg ]]; then
-        # Convert SVG to PNG then to ICNS
-        python3 << 'PYTHON_SCRIPT'
+    python3 << 'PYTHON_SCRIPT'
 import subprocess
-import os
 from pathlib import Path
+from PIL import Image, ImageDraw
 
 assets = Path("assets")
-svg_file = assets / "icon.svg"
 iconset = assets / "icon.iconset"
 iconset.mkdir(exist_ok=True)
+
+# Create a nice gradient icon programmatically
+def create_icon(size):
+    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    
+    # Rounded rectangle background (purple gradient approximation)
+    margin = size // 8
+    draw.rounded_rectangle(
+        [margin, margin, size - margin, size - margin],
+        radius=size // 5,
+        fill=(99, 102, 241, 255)  # Indigo
+    )
+    
+    # "G" letter in white
+    font_size = size // 2
+    try:
+        from PIL import ImageFont
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+    except:
+        font = ImageFont.load_default()
+    
+    text = "G"
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x = (size - text_width) // 2
+    y = (size - text_height) // 2 - bbox[1]
+    draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
+    
+    return img
 
 # Sizes needed for macOS iconset
 sizes = [16, 32, 64, 128, 256, 512]
 
-try:
-    from PIL import Image
-    import cairosvg
+for size in sizes:
+    # Normal resolution
+    img = create_icon(size)
+    img.save(iconset / f"icon_{size}x{size}.png")
     
-    for size in sizes:
-        # Normal resolution
-        png_path = iconset / f"icon_{size}x{size}.png"
-        cairosvg.svg2png(url=str(svg_file), write_to=str(png_path), 
-                        output_width=size, output_height=size)
-        
-        # Retina (@2x)
-        png_path_2x = iconset / f"icon_{size}x{size}@2x.png"
-        cairosvg.svg2png(url=str(svg_file), write_to=str(png_path_2x),
-                        output_width=size*2, output_height=size*2)
-    
-    # Convert iconset to icns
-    subprocess.run(["iconutil", "-c", "icns", str(iconset)], check=True)
-    print("✅ Icon generated successfully")
-    
-except ImportError:
-    print("⚠️  cairosvg not available, using placeholder icon")
-    # Create a simple placeholder PNG
-    img = Image.new('RGBA', (512, 512), (99, 102, 241, 255))
-    for size in sizes:
-        resized = img.resize((size, size), Image.LANCZOS)
-        resized.save(iconset / f"icon_{size}x{size}.png")
-        resized_2x = img.resize((size*2, size*2), Image.LANCZOS)
-        resized_2x.save(iconset / f"icon_{size}x{size}@2x.png")
-    subprocess.run(["iconutil", "-c", "icns", str(iconset)], check=True)
+    # Retina (@2x)
+    img_2x = create_icon(size * 2)
+    img_2x.save(iconset / f"icon_{size}x{size}@2x.png")
+
+# Convert iconset to icns
+subprocess.run(["iconutil", "-c", "icns", str(iconset)], check=True)
+print("✅ Icon generated successfully")
 
 # Cleanup iconset folder
 import shutil
 shutil.rmtree(iconset)
 PYTHON_SCRIPT
-    else
-        echo "⚠️  No icon source found, build will use default icon"
-    fi
 fi
 
 # Clean previous builds
